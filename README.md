@@ -36,7 +36,7 @@ git clone https://github.com/eouia/MMM-OClock.git
     hands: ["month", "date", "day", "hour", "minute", "second"],
     //available values; "year", "month", "date", "week", "day", "hour", "minute", "second"
     handType: "round", //"default", "round"
-    handWidth: [40, 40, 40, 40, 40, 40, 40],
+    handWidth: [40, 40, 40, 40, 40, 40],
     handTextFormat: ["MMM", "Do", "ddd", "h", "m", "s"],
     handFont: "bold 16px Roboto",
     useNail: true,
@@ -44,7 +44,7 @@ git clone https://github.com/eouia/MMM-OClock.git
     nailBgColor: "#000000",
     nailTextColor: "#FFFFFF", //CSS color or "inherit"
     space: 3,
-    colorType: "hsv", //"static", "radiation", "transform", "hsv"
+    colorType: "hsv", //availables: "static", "radiation", "transform", "hsv"
     colorTypeStatic: ["red", "orange", "yellow", "green", "blue", "purple"],
     colorTypeRadiation: ["#333333", "red"],
     colorTypeTransform: ["blue", "red"],
