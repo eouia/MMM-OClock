@@ -1,5 +1,5 @@
 # MMM-OClock
-MagicMirror module - O-clock inspired by PolarClock
+MagicMirror module - O-clock inspired by PolarClock Screensaver
 
 ## Screenshot
 ![screenshot](https://github.com/eouia/MMM-OClock/blob/master/screenshot.png?raw=true)
