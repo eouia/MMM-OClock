@@ -2,7 +2,7 @@
 MagicMirror module - O-clock inspired by PolarClock
 
 ## Screenshot
-[[PlaceHolder]]
+![screenshot](https://github.com/eouia/MMM-OClock/blob/master/screenshot.png?raw=true)
 
 ## Install
 ```shell
@@ -46,7 +46,7 @@ git clone https://github.com/eouia/MMM-OClock.git
     space: 3,
     colorType: "hsv", //"static", "radiation", "transform", "hsv"
     colorTypeStatic: ["red", "orange", "yellow", "green", "blue", "purple"],
-    colorTypeRadiation: ["#333333", "red"], //Don't use #pattern or colorName.
+    colorTypeRadiation: ["#333333", "red"],
     colorTypeTransform: ["blue", "red"],
     colorTypeHSV: 0.25, //hsv circle start color : 0~1
 
