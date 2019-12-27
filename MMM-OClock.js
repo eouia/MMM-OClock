@@ -96,9 +96,28 @@ Module.register("MMM-OClock", {
 
   updateView: function() {
     this.drawFace()
-    var timer = setTimeout(()=>{
-      this.updateView()
-    }, 1000)
+		setTimeout(() => this.updateView(), this.getNextTick())
+
+		if (this.config.hands.includes('second')) {
+      clearInterval(this.secondsTimer)
+      this.secondsTimer = setInterval(() => {
+        this.updateSeconds()
+      }, this.config.secondsUpdateInterval)
+    }
+  },
+
+  getNextTick: function() {
+    var now = moment()
+		var nextTick = (59 - now.seconds()) * 1000 + (1000 - now.milliseconds())
+		if (nextTick <= 0) nextTick = 60 * 1000
+    return nextTick
+  },
+
+  updateSeconds: function() {
+    var now = this.getNow()
+    var ctx = this.getCtx()
+    this.secondsCfg.pros = this.getPros(now, this.secondsCfg.type)
+    this.drawPost(ctx, this.drawArc(ctx, this.secondsCfg))
   },
 
   getDom: function() {
@@ -115,10 +134,21 @@ Module.register("MMM-OClock", {
     return wrapper
   },
 
+  getPros: function(now, hand) {
+    return now.format(this.config.handConversionMap[hand]) / this.endMap[hand]
+  },
+
+  getNow: function() {
+    return (this.config.locale) ? moment().locale(this.config.locale) : moment()
+  },
+
+  getCtx: function() {
+    return this.ctx = this.ctx || (
+      document.getElementById("OCLOCK").getContext("2d"))
+  },
+
   drawFace: function() {
-    var getPros = (now, hand) => {
-      return now.format(this.config.handConversionMap[hand]) / this.endMap[hand]
-    }
+    var now = this.getNow()
     this.endMap = {
       "year": moment().format("YYYY"),
       "month": 12,
@@ -130,8 +160,7 @@ Module.register("MMM-OClock", {
       "second": 60,
     }
 
-    var c = document.getElementById("OCLOCK")
-    var ctx = c.getContext("2d")
+    var ctx = this.getCtx();
     ctx.clearRect(0, 0, this.config.canvasWidth, this.config.canvasHeight)
     var postArc = []
     var now = (this.config.locale) ? moment().locale(this.config.locale) : moment()
@@ -163,6 +192,8 @@ Module.register("MMM-OClock", {
         text: (this.config.handTextFormat[i]) ? now.format(this.config.handTextFormat[i]) : ""
       }
       postArc.push(this.drawArc(ctx, cfg))
+
+      if (hand === 'second') this.secondsCfg = cfg
       distance += this.config.handWidth[i] / 2 + this.config.space
     }
     for (var i in postArc) {
@@ -273,27 +304,26 @@ Module.register("MMM-OClock", {
   },
 
   drawPost: function(ctx, item) {
-      if (this.config.useNail) {
-        ctx.beginPath()
-        ctx.lineWidth=1;
-        ctx.fillStyle = item.c
-        ctx.arc(item.x, item.y, (this.config.nailSize/2), 0, 2*Math.PI)
-        ctx.closePath()
-        ctx.fill()
+    if (item.h === 'second') return;
+    if (this.config.useNail) {
+      ctx.beginPath()
+      ctx.lineWidth=1;
+      ctx.fillStyle = item.c
+      ctx.arc(item.x, item.y, (this.config.nailSize/2), 0, 2*Math.PI)
+      ctx.closePath()
+      ctx.fill()
 
-        ctx.beginPath()
-        ctx.lineWidth=1;
-        ctx.fillStyle = this.config.nailBgColor
-        ctx.arc(item.x, item.y, (this.config.nailSize/2) - 5, 0, 2*Math.PI)
-        ctx.closePath()
-        ctx.fill()
-      }
-
-
-        ctx.font= this.config.handFont
-        ctx.textAlign="center"
-        ctx.textBaseline = "middle"
-        ctx.fillStyle = (this.config.nailTextColor == "inherit") ? item.c : this.config.nailTextColor
-        ctx.fillText(item.t, item.x, item.y)
+      ctx.beginPath()
+      ctx.lineWidth=1;
+      ctx.fillStyle = this.config.nailBgColor
+      ctx.arc(item.x, item.y, (this.config.nailSize/2) - 5, 0, 2*Math.PI)
+      ctx.closePath()
+      ctx.fill()
+    }
+    ctx.font= this.config.handFont
+    ctx.textAlign="center"
+    ctx.textBaseline = "middle"
+    ctx.fillStyle = (this.config.nailTextColor == "inherit") ? item.c : this.config.nailTextColor
+    ctx.fillText(item.t, item.x, item.y)
   },
 })
