@@ -96,9 +96,9 @@ Module.register("MMM-OClock", {
 
   updateView: function() {
     this.drawFace()
-		setTimeout(() => this.updateView(), this.getNextTick())
+    setTimeout(() => this.updateView(), this.getNextTick())
 
-		if (this.config.hands.includes('second')) {
+    if (this.config.hands.includes('second')) {
       clearInterval(this.secondsTimer)
       this.secondsTimer = setInterval(() => {
         this.updateSeconds()
@@ -108,8 +108,8 @@ Module.register("MMM-OClock", {
 
   getNextTick: function() {
     var now = moment()
-		var nextTick = (59 - now.seconds()) * 1000 + (1000 - now.milliseconds())
-		if (nextTick <= 0) nextTick = 60 * 1000
+    var nextTick = (59 - now.seconds()) * 1000 + (1000 - now.milliseconds())
+    if (nextTick <= 0) nextTick = 60 * 1000
     return nextTick
   },
 
