@@ -50,6 +50,10 @@ git clone https://github.com/eouia/MMM-OClock.git
     colorTypeTransform: ["blue", "red"],
     colorTypeHSV: 0.25, //hsv circle start color : 0~1
 
+    birthYear: false,  // e.g. 1901
+    lifeExpectancy: MAX_LIFETIME, // default: 85
+    linearLife: false,  // set to true to plot life linearly not logarithmically
+
     handConversionMap: { // I think you don't need to modify this.
       "year": "YYYY",
       "month": "M",
