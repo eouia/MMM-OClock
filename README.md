@@ -51,6 +51,7 @@ git clone https://github.com/eouia/MMM-OClock.git
     colorTypeHSV: 0.25, //hsv circle start color : 0~1
 
     birthYear: false,  // e.g. 1901
+    birthMonth: 0,    // e.g. 1-12
     lifeExpectancy: MAX_LIFETIME, // default: 85
     linearLife: false,  // set to true to plot life linearly not logarithmically
 

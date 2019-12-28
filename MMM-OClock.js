@@ -14,12 +14,12 @@ Module.register("MMM-OClock", {
     centerTextFormat: "YYYY",
     centerFont: "bold 20px Roboto",
     centerTextColor:"#000000",
-    hands: ["year", "month", "date", "day", "hour", "minute", "second"],
+    hands: ["month", "date", "day", "hour", "minute", "second"],
     //"year" (age), "month", "date", "week", "day", "hour", "minute", "second"
 
     handType: "round", //"default", "round"
-    handWidth: [30, 40, 40, 40, 40, 40, 40, 40],
-    handTextFormat: ["YYYY", "MMM", "Do", "ddd", "h", "m", "s"],
+    handWidth: [40, 40, 40, 40, 40, 40, 40],
+    handTextFormat: ["MMM", "Do", "ddd", "h", "m", "s"],
     handFont: "bold 16px Roboto",
     useNail: true,
     nailSize: 40,
@@ -33,6 +33,7 @@ Module.register("MMM-OClock", {
     colorTypeHSV: 0.25, //hsv circle start color : 0~1
 
     birthYear: false,  // e.g. 1901
+    birthMonth: 0,    // e.g. 1-12
     lifeExpectancy: MAX_LIFETIME, // default: 85
     linearLife: false,  // set to true to plot life linearly not logarithmically
 
@@ -119,10 +120,16 @@ Module.register("MMM-OClock", {
     return wrapper
   },
 
+  getAge: function(now) {
+    let age = now.year() - this.config.birthYear
+    if (this.config.birthMonth > 0 && (1 + now.month()) < this.config.birthMonth) age -= 1
+    return age
+  },
+
   drawFace: function() {
     var getPros = (now, hand) => {
       if (hand === 'year' && this.config.birthYear) {
-        let age = now.year() - this.config.birthYear;
+        let age = this.getAg(now)
         return this.config.linearLife
           ? age / this.endMap[hand]
           : Math.log(1 + age/25) / Math.log(1+this.endMap[hand]/25);
@@ -176,7 +183,7 @@ Module.register("MMM-OClock", {
         width: this.config.handWidth[i],
         text: (this.config.handTextFormat[i]) ?
           (hand === 'year' && this.config.birthYear ?
-            now.year() - this.config.birthYear
+            this.getAge(now)
             : now.format(this.config.handTextFormat[i]))
           : ""
       }
