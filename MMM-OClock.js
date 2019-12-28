@@ -129,7 +129,7 @@ Module.register("MMM-OClock", {
   drawFace: function() {
     var getPros = (now, hand) => {
       if (hand === 'year' && this.config.birthYear) {
-        let age = this.getAg(now)
+        let age = this.getAge(now)
         return this.config.linearLife
           ? age / this.endMap[hand]
           : Math.log(1 + age/25) / Math.log(1+this.endMap[hand]/25);
