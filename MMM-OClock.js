@@ -80,7 +80,8 @@ Module.register("MMM-OClock", {
     switch(noti) {
       case "DOM_OBJECTS_CREATED":
         this.colorTrick()
-        this.updateView()
+        // slight delay to make sure fonts are loaded before first draw
+        setTimeout(() => this.updateView(), 1500)
         break
     }
   },
@@ -115,7 +116,6 @@ Module.register("MMM-OClock", {
 
   updateView: function() {
     this.drawFace()
-
     // update seconds if we have to
     if (this.config.hands.includes('second')) {
       clearTimeout(this.secondsTimer)
@@ -165,6 +165,8 @@ Module.register("MMM-OClock", {
     canvas.id = "OCLOCK"
     var trick = document.createElement("div")
     trick.id = "OCLOCK_TRICK"
+    trick.style.font = this.config.centerFont // prefetch fonts
+    trick.innerHTML = '&nbsp;'
     wrapper.appendChild(canvas)
     wrapper.appendChild(trick)
     return wrapper
@@ -363,7 +365,7 @@ Module.register("MMM-OClock", {
   },
 
   drawPost: function(ctx, item) {
-    if (item.h === 'second') return;
+    if (item.h === 'second') return
     if (this.config.useNail) {
       let nailSize = this.config.nailSize
       ctx.beginPath()
