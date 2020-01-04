@@ -169,6 +169,8 @@ Module.register("MMM-OClock", {
   drawFace: function() {    
     var now = this.getNow()
 
+    var now = (this.config.locale) ? moment().locale(this.config.locale) : moment()
+
     this.endMap = {
       "year": this.config.birthYear
         ? Math.min(1.2*(this.config.birthYear-10), this.config.lifeExpectancy)
