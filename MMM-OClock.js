@@ -1,21 +1,24 @@
 //
 // MMM-OClock
 //
+// v2.0
 
-
+let MAX_LIFETIME = 85;
+let MSEC = 1000;  // sec to msec conversion
 
 Module.register("MMM-OClock", {
   defaults: {
     locale: "", //default is system locale, or use like this. "de-DE"
     canvasWidth:1000,
     canvasHeight:1000,
+    canvasStyle: "", // CSS style, e.g. "opacity: .7; ..."
     centerColor: "#FFFFFF",
     centerR: 50,
     centerTextFormat: "YYYY",
     centerFont: "bold 20px Roboto",
     centerTextColor:"#000000",
     hands: ["month", "date", "day", "hour", "minute", "second"],
-    //"year", "month", "date", "week", "day", "hour", "minute", "second"
+    //"year" or "age", "month", "date", "week", "day", "hour", "minute", "second"
 
     handType: "round", //"default", "round"
     handWidth: [40, 40, 40, 40, 40, 40, 40],
@@ -31,8 +34,17 @@ Module.register("MMM-OClock", {
     colorTypeRadiation: ["#333333", "red"], //Don't use #pattern or colorName.
     colorTypeTransform: ["blue", "red"],
     colorTypeHSV: 0.25, //hsv circle start color : 0~1
+    secondsUpdateInterval: 1,  // secs (integer)
+    scale: 1, // convenience to scale bar dimensions (font size & nailSize should be
+              // adjusted manually)
+
+    birthYear: false,   // e.g. 1901
+    birthMonth: 0,      // e.g. 1-12
+    lifeExpectancy: MAX_LIFETIME, // default: 85
+    linearLife: false,  // set to true to plot life linearly not logarithmically
 
     handConversionMap: {
+      "age": "n/a",
       "year": "YYYY",
       "month": "M",
       "date": "D",
@@ -50,18 +62,27 @@ Module.register("MMM-OClock", {
 
   start: function() {
     this.center = {
-      x: this.config.canvasWidth / 2,
-      y: this.config.canvasHeight / 2
+      x: this.getDim('canvasWidth') / 2,
+      y: this.getDim('canvasHeight') / 2
     }
     this.endMap = {}
     this.colorRange = {}
+    this.config.secondsUpdateInterval = Math.max(1, Math.floor(this.config.secondsUpdateInterval))
+  },
+
+  getDim: function(dim, index) {
+    if (!(dim in this.config)) throw new Error('Unkown config property in getDim(): ' + dim);
+    let value = this.config[dim]
+    if (typeof index !== 'undefined') value = value[index]
+    return this.config.scale * value
   },
 
   notificationReceived: function(noti, payload, sender) {
     switch(noti) {
       case "DOM_OBJECTS_CREATED":
         this.colorTrick()
-        this.updateView()
+        // slight delay to make sure fonts are loaded before first draw
+        setTimeout(() => this.updateView(), 1500)
         break
     }
   },
@@ -96,45 +117,76 @@ Module.register("MMM-OClock", {
 
   updateView: function() {
     this.drawFace()
-    setTimeout(() => this.updateView(), this.getNextTick())
-
+    // update seconds if we have to
     if (this.config.hands.includes('second')) {
-      clearInterval(this.secondsTimer)
-      this.secondsTimer = setInterval(() => {
-        this.updateSeconds()
-      }, this.config.secondsUpdateInterval)
+      clearTimeout(this.secondsTimer)
+      let offset = this.getNow().milliseconds()
+      this.secondsTimer = setTimeout(() => this.updateSeconds(),
+        MSEC * this.config.secondsUpdateInterval - offset)
+    } else {
+      setTimeout(() => this.updateView(), this.getNextMinuteTick())
     }
   },
 
-  getNextTick: function() {
-    var now = moment()
-    var nextTick = (59 - now.seconds()) * 1000 + (1000 - now.milliseconds())
-    if (nextTick <= 0) nextTick = 60 * 1000
-    return nextTick
-  },
-
-  updateSeconds: function() {
+  // draw seconds hand
+  updateSeconds: function(lastTick) {
     var now = this.getNow()
     var ctx = this.getCtx()
-    this.secondsCfg.pros = this.getPros(now, this.secondsCfg.type)
-    this.drawPost(ctx, this.drawArc(ctx, this.secondsCfg))
+    this.secondsCfg.pros = lastTick ? 1 : this.getPros(now, this.secondsCfg.type)
+    this.drawArc(ctx, this.secondsCfg)
+    if (lastTick) return
+
+    let msecs = now.milliseconds()
+    let nextTick = MSEC * this.config.secondsUpdateInterval - msecs
+    let timeToLastTick = MSEC * (60 - now.seconds())
+    if (nextTick + msecs >= timeToLastTick - 10) {
+      // ensure we always draw the 60th second line
+      nextTick = timeToLastTick
+      this.secondsTimer = setTimeout(() => this.updateSeconds(true), nextTick - 50)
+      setTimeout(() => this.updateView(), nextTick + 200)
+    } else {
+      this.secondsTimer = setTimeout(() => this.updateSeconds(), nextTick)
+    }
+  },
+
+  // next tick for updating for whole view (on the minute)
+  getNextMinuteTick: function() {
+    var now = moment()
+    var nextTick = (59 - now.seconds()) * MSEC + (MSEC - now.milliseconds())
+    if (nextTick <= 0) nextTick = 60 * MSEC
+    return nextTick
   },
 
   getDom: function() {
     var wrapper = document.createElement("div")
     wrapper.id = "OCLOCK_WRAPPER"
+    wrapper.style = this.config.canvasStyle
     var canvas = document.createElement("canvas")
-    canvas.width = this.config.canvasWidth
-    canvas.height = this.config.canvasHeight
+    canvas.width = this.getDim('canvasWidth')
+    canvas.height = this.getDim('canvasHeight')
     canvas.id = "OCLOCK"
     var trick = document.createElement("div")
     trick.id = "OCLOCK_TRICK"
+    trick.style.font = this.config.centerFont // prefetch fonts
+    trick.innerHTML = '&nbsp;'
     wrapper.appendChild(canvas)
     wrapper.appendChild(trick)
     return wrapper
   },
 
+  getAge: function(now) {
+    let age = now.year() - this.config.birthYear
+    if (this.config.birthMonth > 0 && (1 + now.month()) < this.config.birthMonth) age -= 1
+    return age
+  },
+
   getPros: function(now, hand) {
+    if (hand === 'age' && this.config.birthYear) {
+      let age = this.getAge(now)
+      return this.config.linearLife
+        ? age / this.endMap[hand]
+        : Math.log(1 + age/25) / Math.log(1+this.endMap[hand]/25);
+    }
     return now.format(this.config.handConversionMap[hand]) / this.endMap[hand]
   },
 
@@ -143,17 +195,25 @@ Module.register("MMM-OClock", {
   },
 
   getCtx: function() {
-    return this.ctx = this.ctx || (
-      document.getElementById("OCLOCK").getContext("2d"))
+    if (this.ctx) return this.ctx
+    this.ctx = document.getElementById("OCLOCK").getContext("2d")
+    this.ctx.textAlign = "center"
+    this.ctx.textBaseline = "middle"
+    return this.ctx
   },
 
   drawFace: function() {
     var now = this.getNow()
     this.endMap = {
-      "year": moment().format("YYYY"),
+      "age": this.config.birthYear
+        // explanation of this formula: if someone is near the end of,
+        // or passed, their life expectancy, give them a few more years!
+        ? Math.min(1.2*(this.config.birthYear-10), this.config.lifeExpectancy)
+        : 0,
+      "year": now.format("YYYY"),
       "month": 12,
-      "date": moment().daysInMonth(),
-      "week": (this.config.handConversionMap["week"] == "W") ? moment().isoWeeksInYear() : moment().weeksInYear(),
+      "date": now.daysInMonth(),
+      "week": (this.config.handConversionMap["week"] == "W") ? now.isoWeeksInYear() : now.weeksInYear(),
       "day": 7,
       "hour": (this.config.handConversionMap["hour"] == "H") ? 24 : 12,
       "minute": 60,
@@ -161,14 +221,13 @@ Module.register("MMM-OClock", {
     }
 
     var ctx = this.getCtx();
-    ctx.clearRect(0, 0, this.config.canvasWidth, this.config.canvasHeight)
+    ctx.clearRect(0, 0, this.getDim('canvasWidth'), this.getDim('canvasHeight'))
     var postArc = []
-    var now = (this.config.locale) ? moment().locale(this.config.locale) : moment()
     var distance = 0
     if (this.config.centerR) {
       ctx.beginPath()
       ctx.fillStyle = this.config.centerColor
-      ctx.arc(this.center.x, this.center.y, this.config.centerR, 0, 2 * Math.PI)
+      ctx.arc(this.center.x, this.center.y, this.getDim('centerR'), 0, 2 * Math.PI)
       ctx.closePath()
       ctx.fill()
       if (this.config.centerTextFormat) {
@@ -177,24 +236,28 @@ Module.register("MMM-OClock", {
         ctx.fillText(now.format(this.config.centerTextFormat), this.center.x, this.center.y)
       }
 
-      distance = this.config.centerR + this.config.space
+      distance = this.getDim('centerR') + this.config.space
     }
     for (var i=0; i < this.config.hands.length; i++) {
-      distance += this.config.handWidth[i] / 2
-      var hand = this.config.hands[i]
+      let handWidth = this.getDim('handWidth', i)
+      let hand = this.config.hands[i]
+      distance +=  handWidth / 2
       var cfg = {
         index: i,
         type: hand,
         center: this.center,
         distance: distance,
-        pros: getPros(now, hand),
-        width: this.config.handWidth[i],
-        text: (this.config.handTextFormat[i]) ? now.format(this.config.handTextFormat[i]) : ""
+        pros: this.getPros(now, hand),
+        width: handWidth,
+        text: (this.config.handTextFormat[i])
+          ? (hand === 'age' && this.config.birthYear
+              ? this.getAge(now)
+              : now.format(this.config.handTextFormat[i]))
+          : ""
       }
       postArc.push(this.drawArc(ctx, cfg))
-
       if (hand === 'second') this.secondsCfg = cfg
-      distance += this.config.handWidth[i] / 2 + this.config.space
+      distance += handWidth / 2 + this.config.space
     }
     for (var i in postArc) {
       var post = postArc[i]
@@ -304,25 +367,24 @@ Module.register("MMM-OClock", {
   },
 
   drawPost: function(ctx, item) {
-    if (item.h === 'second') return;
+    if (item.h === 'second') return
     if (this.config.useNail) {
+      let nailSize = this.config.nailSize
       ctx.beginPath()
       ctx.lineWidth=1;
       ctx.fillStyle = item.c
-      ctx.arc(item.x, item.y, (this.config.nailSize/2), 0, 2*Math.PI)
+      ctx.arc(item.x, item.y, nailSize/2, 0, 2*Math.PI)
       ctx.closePath()
       ctx.fill()
 
       ctx.beginPath()
       ctx.lineWidth=1;
       ctx.fillStyle = this.config.nailBgColor
-      ctx.arc(item.x, item.y, (this.config.nailSize/2) - 5, 0, 2*Math.PI)
+      ctx.arc(item.x, item.y, nailSize/2 - 5, 0, 2*Math.PI)
       ctx.closePath()
       ctx.fill()
     }
     ctx.font= this.config.handFont
-    ctx.textAlign="center"
-    ctx.textBaseline = "middle"
     ctx.fillStyle = (this.config.nailTextColor == "inherit") ? item.c : this.config.nailTextColor
     ctx.fillText(item.t, item.x, item.y)
   },

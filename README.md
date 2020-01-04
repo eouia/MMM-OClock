@@ -19,7 +19,7 @@ git clone https://github.com/eouia/MMM-OClock.git
 },
 ```
 
-### detailed & defaults
+## detailed & defaults
 ```javascript
 {
   module: "MMM-OClock",
@@ -59,7 +59,28 @@ git clone https://github.com/eouia/MMM-OClock.git
       "hour": "h", // 12H system. If you want to 24H system, use "H" instead "h"
       "minute": "m",
       "second": "s"
-    }
+    },
+
+    ////// Available as of v2.x:
+    secondsUpdateInterval: 1,  // how often to redraw the seconds hand (integer >= 1 sec)
+
+    // To show an age bar enter your birthYear AND enter "age" in the hands array.
+    birthYear: false,  // e.g. 1901
+    birthMonth: 0,    // e.g. 1-12 (optional, recommended)
+    lifeExpectancy: 85, // default: 85
+    linearLife: false,  // set to true to plot life linearly not logarithmically
+                        // Inspiration: http://www.bertrandplanes.com/pages/LifeClock3.php
+
+    scale: 1, // convenience to scale bar dimensions (font size & nailSize should be
+              // adjusted manually).  E.g. 0.5 is half-size, 2 is double sized.
+
+    canvasStyle: "", // Any CSS styles, e.g. "opacity: .7; ..."
+
   }
 },
 ```
+
+## Change log
+
+- v2.0  Update only seconds hand every second.  Added age bar.
+- v1.x  Initial version
