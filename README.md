@@ -70,6 +70,8 @@ git clone https://github.com/eouia/MMM-OClock.git
     lifeExpectancy: 85, // default: 85
     linearLife: false,  // set to true to plot life linearly not logarithmically
                         // Inspiration: http://www.bertrandplanes.com/pages/LifeClock3.php
+    ageBarColor: [],  // false for no gradient, empty array for default, or
+                      // [start, stop] colors, e.g. ['#000', 'white']
 
     scale: 1, // convenience to scale bar dimensions (font size & nailSize should be
               // adjusted manually).  E.g. 0.5 is half-size, 2 is double sized.

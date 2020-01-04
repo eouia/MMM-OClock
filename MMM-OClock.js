@@ -30,7 +30,7 @@ Module.register("MMM-OClock", {
     nailTextColor: "#FFFFFF", //CSS color or "inherit"
     space: 3,
     colorType: "hsv", //"static", "radiation", "transform", "hsv"
-    colorTypeStatic: ["red", "orange", "yellow", "green", "blue", "purple"],
+    colorTypeStatic: ["red", "orange", "yellow", "green", "blue", "purple", "goldenrod"],
     colorTypeRadiation: ["#333333", "red"], //Don't use #pattern or colorName.
     colorTypeTransform: ["blue", "red"],
     colorTypeHSV: 0.25, //hsv circle start color : 0~1
@@ -42,6 +42,8 @@ Module.register("MMM-OClock", {
     birthMonth: 0,      // e.g. 1-12
     lifeExpectancy: MAX_LIFETIME, // default: 85
     linearLife: false,  // set to true to plot life linearly not logarithmically
+    ageBarColor: [],  // false for no gradient, empty for default, or
+                      // [start, stop] colors, e.g. ['#000', 'white']
 
     handConversionMap: {
       "age": "n/a",
@@ -289,6 +291,22 @@ Module.register("MMM-OClock", {
     color = this.getColor(cfg.index, cfg.pros)
     ctx.fillStyle = color
     ctx.strokeStyle = color
+
+    if (this.config.ageBarColor && cfg.type === 'age') {
+      let left = cfg.center.x - cfg.distance/2
+      let top = cfg.center.y - cfg.distance/2
+      let ncolors = this.config.ageBarColor.length
+      if (!ncolors) {
+        this.config.ageBarColor = [this.getColor(cfg.index, 0), color]
+        ncolors = 2
+      }
+
+      let gradient = ctx.createLinearGradient(left, top+cfg.distance, left+cfg.distance, top)
+      this.config.ageBarColor.forEach((c,i) => gradient.addColorStop(1-i/(ncolors-1), c))
+      ctx.fillStyle = gradient
+      ctx.strokeStyle = gradient
+      color = this.config.ageBarColor[ncolors-1]
+    }
 
     var sX = cfg.center.x + (Math.cos(radian) * cfg.distance)
     var sY = cfg.center.y + (Math.sin(radian) * cfg.distance)
