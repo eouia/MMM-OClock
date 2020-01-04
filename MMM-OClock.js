@@ -33,6 +33,8 @@ Module.register("MMM-OClock", {
     colorTypeTransform: ["blue", "red"],
     colorTypeHSV: 0.25, //hsv circle start color : 0~1
     secondsUpdateInterval: 1000,  // msec
+    scale: 1, // convenience to scale bar dimensions (font size & nailSize should be
+              // adjusted manually)
 
     birthYear: false,  // e.g. 1901
     birthMonth: 0,    // e.g. 1-12
@@ -58,11 +60,18 @@ Module.register("MMM-OClock", {
 
   start: function() {
     this.center = {
-      x: this.config.canvasWidth / 2,
-      y: this.config.canvasHeight / 2
+      x: this.getDim('canvasWidth') / 2,
+      y: this.getDim('canvasHeight') / 2
     }
     this.endMap = {}
     this.colorRange = {}
+  },
+
+  getDim: function(dim, index) {
+    if (!(dim in this.config)) throw new Error('Unkown config property in getDim(): ' + dim);
+    let value = this.config[dim]
+    if (typeof index !== 'undefined') value = value[index]
+    return this.config.scale * value
   },
 
   notificationReceived: function(noti, payload, sender) {
@@ -135,8 +144,8 @@ Module.register("MMM-OClock", {
     var wrapper = document.createElement("div")
     wrapper.id = "OCLOCK_WRAPPER"
     var canvas = document.createElement("canvas")
-    canvas.width = this.config.canvasWidth
-    canvas.height = this.config.canvasHeight
+    canvas.width = this.getDim('canvasWidth')
+    canvas.height = this.getDim('canvasHeight')
     canvas.id = "OCLOCK"
     var trick = document.createElement("div")
     trick.id = "OCLOCK_TRICK"
@@ -189,13 +198,13 @@ Module.register("MMM-OClock", {
     }
 
     var ctx = this.getCtx();
-    ctx.clearRect(0, 0, this.config.canvasWidth, this.config.canvasHeight)
+    ctx.clearRect(0, 0, this.getDim('canvasWidth'), this.getDim('canvasHeight'))
     var postArc = []
     var distance = 0
     if (this.config.centerR) {
       ctx.beginPath()
       ctx.fillStyle = this.config.centerColor
-      ctx.arc(this.center.x, this.center.y, this.config.centerR, 0, 2 * Math.PI)
+      ctx.arc(this.center.x, this.center.y, this.getDim('centerR'), 0, 2 * Math.PI)
       ctx.closePath()
       ctx.fill()
       if (this.config.centerTextFormat) {
@@ -204,10 +213,11 @@ Module.register("MMM-OClock", {
         ctx.fillText(now.format(this.config.centerTextFormat), this.center.x, this.center.y)
       }
 
-      distance = this.config.centerR + this.config.space
+      distance = this.getDim('centerR') + this.config.space
     }
     for (var i=0; i < this.config.hands.length; i++) {
-      distance += this.config.handWidth[i] / 2
+      let handWidth = this.getDim('handWidth', i)
+      distance +=  handWidth / 2
       var hand = this.config.hands[i]
       var cfg = {
         index: i,
@@ -215,7 +225,7 @@ Module.register("MMM-OClock", {
         center: this.center,
         distance: distance,
         pros: this.getPros(now, hand),
-        width: this.config.handWidth[i],
+        width: handWidth,
         text: (this.config.handTextFormat[i])
           ? (hand === 'age' && this.config.birthYear
               ? this.getAge(now)
@@ -225,7 +235,7 @@ Module.register("MMM-OClock", {
       postArc.push(this.drawArc(ctx, cfg))
 
       if (hand === 'second') this.secondsCfg = cfg
-      distance += this.config.handWidth[i] / 2 + this.config.space
+      distance += handWidth / 2 + this.config.space
     }
     for (var i in postArc) {
       var post = postArc[i]
@@ -337,17 +347,18 @@ Module.register("MMM-OClock", {
   drawPost: function(ctx, item) {
     if (item.h === 'second') return;
     if (this.config.useNail) {
+      let nailSize = this.config.nailSize
       ctx.beginPath()
       ctx.lineWidth=1;
       ctx.fillStyle = item.c
-      ctx.arc(item.x, item.y, (this.config.nailSize/2), 0, 2*Math.PI)
+      ctx.arc(item.x, item.y, nailSize/2, 0, 2*Math.PI)
       ctx.closePath()
       ctx.fill()
 
       ctx.beginPath()
       ctx.lineWidth=1;
       ctx.fillStyle = this.config.nailBgColor
-      ctx.arc(item.x, item.y, (this.config.nailSize/2) - 5, 0, 2*Math.PI)
+      ctx.arc(item.x, item.y, nailSize/2 - 5, 0, 2*Math.PI)
       ctx.closePath()
       ctx.fill()
     }
