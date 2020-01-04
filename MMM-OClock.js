@@ -106,6 +106,7 @@ Module.register("MMM-OClock", {
     this.drawFace()
     setTimeout(() => this.updateView(), this.getNextTick())
 
+    // update seconds if we have to
     if (this.config.hands.includes('second')) {
       clearInterval(this.secondsTimer)
       this.secondsTimer = setInterval(() => {
@@ -114,18 +115,20 @@ Module.register("MMM-OClock", {
     }
   },
 
-  getNextTick: function() {
-    var now = moment()
-    var nextTick = (59 - now.seconds()) * 1000 + (1000 - now.milliseconds())
-    if (nextTick <= 0) nextTick = 60 * 1000
-    return nextTick
-  },
-
+  // draw seconds hand
   updateSeconds: function() {
     var now = this.getNow()
     var ctx = this.getCtx()
     this.secondsCfg.pros = this.getPros(now, this.secondsCfg.type)
     this.drawPost(ctx, this.drawArc(ctx, this.secondsCfg))
+  },
+
+  // next tick for updating for whole view (on the minute)
+  getNextTick: function() {
+    var now = moment()
+    var nextTick = (59 - now.seconds()) * 1000 + (1000 - now.milliseconds())
+    if (nextTick <= 0) nextTick = 60 * 1000
+    return nextTick
   },
 
   getDom: function() {
