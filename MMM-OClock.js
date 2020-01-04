@@ -4,6 +4,7 @@
 // v2.0
 
 let MAX_LIFETIME = 85;
+let MSEC = 1000;  // sec to msec conversion
 
 Module.register("MMM-OClock", {
   defaults: {
@@ -32,12 +33,12 @@ Module.register("MMM-OClock", {
     colorTypeRadiation: ["#333333", "red"], //Don't use #pattern or colorName.
     colorTypeTransform: ["blue", "red"],
     colorTypeHSV: 0.25, //hsv circle start color : 0~1
-    secondsUpdateInterval: 1000,  // msec
+    secondsUpdateInterval: 1,  // secs (integer)
     scale: 1, // convenience to scale bar dimensions (font size & nailSize should be
               // adjusted manually)
 
-    birthYear: false,  // e.g. 1901
-    birthMonth: 0,    // e.g. 1-12
+    birthYear: false,   // e.g. 1901
+    birthMonth: 0,      // e.g. 1-12
     lifeExpectancy: MAX_LIFETIME, // default: 85
     linearLife: false,  // set to true to plot life linearly not logarithmically
 
@@ -65,6 +66,7 @@ Module.register("MMM-OClock", {
     }
     this.endMap = {}
     this.colorRange = {}
+    this.config.secondsUpdateInterval = Math.max(1, Math.floor(this.config.secondsUpdateInterval))
   },
 
   getDim: function(dim, index) {
@@ -113,30 +115,44 @@ Module.register("MMM-OClock", {
 
   updateView: function() {
     this.drawFace()
-    setTimeout(() => this.updateView(), this.getNextTick())
 
     // update seconds if we have to
     if (this.config.hands.includes('second')) {
-      clearInterval(this.secondsTimer)
-      this.secondsTimer = setInterval(() => {
-        this.updateSeconds()
-      }, this.config.secondsUpdateInterval)
+      clearTimeout(this.secondsTimer)
+      let offset = this.getNow().milliseconds()
+      this.secondsTimer = setTimeout(() => this.updateSeconds(),
+        MSEC * this.config.secondsUpdateInterval - offset)
+    } else {
+      setTimeout(() => this.updateView(), this.getNextMinuteTick())
     }
   },
 
   // draw seconds hand
-  updateSeconds: function() {
+  updateSeconds: function(lastTick) {
     var now = this.getNow()
     var ctx = this.getCtx()
-    this.secondsCfg.pros = this.getPros(now, this.secondsCfg.type)
-    this.drawPost(ctx, this.drawArc(ctx, this.secondsCfg))
+    this.secondsCfg.pros = lastTick ? 1 : this.getPros(now, this.secondsCfg.type)
+    this.drawArc(ctx, this.secondsCfg)
+    if (lastTick) return
+
+    let msecs = now.milliseconds()
+    let nextTick = MSEC * this.config.secondsUpdateInterval - msecs
+    let timeToLastTick = MSEC * (60 - now.seconds())
+    if (nextTick + msecs >= timeToLastTick - 10) {
+      // ensure we always draw the 60th second line
+      nextTick = timeToLastTick
+      this.secondsTimer = setTimeout(() => this.updateSeconds(true), nextTick - 50)
+      setTimeout(() => this.updateView(), nextTick + 200)
+    } else {
+      this.secondsTimer = setTimeout(() => this.updateSeconds(), nextTick)
+    }
   },
 
   // next tick for updating for whole view (on the minute)
-  getNextTick: function() {
+  getNextMinuteTick: function() {
     var now = moment()
-    var nextTick = (59 - now.seconds()) * 1000 + (1000 - now.milliseconds())
-    if (nextTick <= 0) nextTick = 60 * 1000
+    var nextTick = (59 - now.seconds()) * MSEC + (MSEC - now.milliseconds())
+    if (nextTick <= 0) nextTick = 60 * MSEC
     return nextTick
   },
 
@@ -175,8 +191,11 @@ Module.register("MMM-OClock", {
   },
 
   getCtx: function() {
-    return this.ctx = this.ctx || (
-      document.getElementById("OCLOCK").getContext("2d"))
+    if (this.ctx) return this.ctx
+    this.ctx = document.getElementById("OCLOCK").getContext("2d")
+    this.ctx.textAlign = "center"
+    this.ctx.textBaseline = "middle"
+    return this.ctx
   },
 
   drawFace: function() {
@@ -217,8 +236,8 @@ Module.register("MMM-OClock", {
     }
     for (var i=0; i < this.config.hands.length; i++) {
       let handWidth = this.getDim('handWidth', i)
+      let hand = this.config.hands[i]
       distance +=  handWidth / 2
-      var hand = this.config.hands[i]
       var cfg = {
         index: i,
         type: hand,
@@ -233,7 +252,6 @@ Module.register("MMM-OClock", {
           : ""
       }
       postArc.push(this.drawArc(ctx, cfg))
-
       if (hand === 'second') this.secondsCfg = cfg
       distance += handWidth / 2 + this.config.space
     }
@@ -363,8 +381,6 @@ Module.register("MMM-OClock", {
       ctx.fill()
     }
     ctx.font= this.config.handFont
-    ctx.textAlign="center"
-    ctx.textBaseline = "middle"
     ctx.fillStyle = (this.config.nailTextColor == "inherit") ? item.c : this.config.nailTextColor
     ctx.fillText(item.t, item.x, item.y)
   },

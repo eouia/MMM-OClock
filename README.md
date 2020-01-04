@@ -61,7 +61,8 @@ git clone https://github.com/eouia/MMM-OClock.git
       "second": "s"
     },
 
-    // Available as of v2.x:
+    ////// Available as of v2.x:
+    secondsUpdateInterval: 1,  // how often to redraw the seconds hand (integer >= 1 sec)
 
     // To show an age bar enter your birthYear AND enter "age" in the hands array.
     birthYear: false,  // e.g. 1901
