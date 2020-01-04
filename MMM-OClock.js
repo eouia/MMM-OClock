@@ -11,6 +11,7 @@ Module.register("MMM-OClock", {
     locale: "", //default is system locale, or use like this. "de-DE"
     canvasWidth:1000,
     canvasHeight:1000,
+    canvasStyle: "", // CSS style, e.g. "opacity: .7; ..."
     centerColor: "#FFFFFF",
     centerR: 50,
     centerTextFormat: "YYYY",
@@ -159,6 +160,7 @@ Module.register("MMM-OClock", {
   getDom: function() {
     var wrapper = document.createElement("div")
     wrapper.id = "OCLOCK_WRAPPER"
+    wrapper.style = this.config.canvasStyle
     var canvas = document.createElement("canvas")
     canvas.width = this.getDim('canvasWidth')
     canvas.height = this.getDim('canvasHeight')

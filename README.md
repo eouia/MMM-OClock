@@ -74,6 +74,8 @@ git clone https://github.com/eouia/MMM-OClock.git
     scale: 1, // convenience to scale bar dimensions (font size & nailSize should be
               // adjusted manually).  E.g. 0.5 is half-size, 2 is double sized.
 
+    canvasStyle: "", // Any CSS styles, e.g. "opacity: .7; ..."
+
   }
 },
 ```
