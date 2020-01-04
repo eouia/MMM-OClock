@@ -1,6 +1,7 @@
 //
 // MMM-OClock
 //
+// v2.0
 
 let MAX_LIFETIME = 85;
 
@@ -15,7 +16,7 @@ Module.register("MMM-OClock", {
     centerFont: "bold 20px Roboto",
     centerTextColor:"#000000",
     hands: ["month", "date", "day", "hour", "minute", "second"],
-    //"year" (age), "month", "date", "week", "day", "hour", "minute", "second"
+    //"year" or "age", "month", "date", "week", "day", "hour", "minute", "second"
 
     handType: "round", //"default", "round"
     handWidth: [40, 40, 40, 40, 40, 40, 40],
@@ -31,6 +32,7 @@ Module.register("MMM-OClock", {
     colorTypeRadiation: ["#333333", "red"], //Don't use #pattern or colorName.
     colorTypeTransform: ["blue", "red"],
     colorTypeHSV: 0.25, //hsv circle start color : 0~1
+    secondsUpdateInterval: 1000,  // msec
 
     birthYear: false,  // e.g. 1901
     birthMonth: 0,    // e.g. 1-12
@@ -38,6 +40,7 @@ Module.register("MMM-OClock", {
     linearLife: false,  // set to true to plot life linearly not logarithmically
 
     handConversionMap: {
+      "age": "n/a",
       "year": "YYYY",
       "month": "M",
       "date": "D",
@@ -146,14 +149,12 @@ Module.register("MMM-OClock", {
   },
 
   getPros: function(now, hand) {
-      if (hand === 'year' && this.config.birthYear) {
-        let age = this.getAge(now)
-        return this.config.linearLife
-          ? age / this.endMap[hand]
-          : Math.log(1 + age/25) / Math.log(1+this.endMap[hand]/25);
-      }
-
-      return now.format(this.config.handConversionMap[hand]) / this.endMap[hand]
+    if (hand === 'age' && this.config.birthYear) {
+      let age = this.getAge(now)
+      return this.config.linearLife
+        ? age / this.endMap[hand]
+        : Math.log(1 + age/25) / Math.log(1+this.endMap[hand]/25);
+    }
     return now.format(this.config.handConversionMap[hand]) / this.endMap[hand]
   },
 
@@ -166,15 +167,15 @@ Module.register("MMM-OClock", {
       document.getElementById("OCLOCK").getContext("2d"))
   },
 
-  drawFace: function() {    
+  drawFace: function() {
     var now = this.getNow()
-
-    var now = (this.config.locale) ? moment().locale(this.config.locale) : moment()
-
     this.endMap = {
-      "year": this.config.birthYear
+      "age": this.config.birthYear
+        // explanation of this formula: if someone is near the end of,
+        // or passed, their life expectancy, give them a few more years!
         ? Math.min(1.2*(this.config.birthYear-10), this.config.lifeExpectancy)
-        : now.format("YYYY"),
+        : 0,
+      "year": now.format("YYYY"),
       "month": 12,
       "date": now.daysInMonth(),
       "week": (this.config.handConversionMap["week"] == "W") ? now.isoWeeksInYear() : now.weeksInYear(),
@@ -210,12 +211,12 @@ Module.register("MMM-OClock", {
         type: hand,
         center: this.center,
         distance: distance,
-        pros: getPros(now, hand),
+        pros: this.getPros(now, hand),
         width: this.config.handWidth[i],
-        text: (this.config.handTextFormat[i]) ?
-          (hand === 'year' && this.config.birthYear ?
-            this.getAge(now)
-            : now.format(this.config.handTextFormat[i]))
+        text: (this.config.handTextFormat[i])
+          ? (hand === 'age' && this.config.birthYear
+              ? this.getAge(now)
+              : now.format(this.config.handTextFormat[i]))
           : ""
       }
       postArc.push(this.drawArc(ctx, cfg))
